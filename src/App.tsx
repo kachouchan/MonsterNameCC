@@ -147,7 +147,7 @@ export default function App() {
           ))}
         </div>
 
-        <div className="input-wrapper" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+        <div className="input-wrapper" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <input
             id="search-input"
             type="text"
@@ -157,19 +157,19 @@ export default function App() {
             onChange={handleSearch}
             disabled={!isLoaded}
             autoComplete="off"
-            style={{ flex: 1 }}
+            style={{ width: '100%', boxSizing: 'border-box' }}
           />
           <select
             className="search-input"
-            style={{ width: 'auto', padding: '0.5rem 1rem', appearance: 'auto', background: 'rgba(0, 0, 0, 0.2)' }}
+            style={{ width: '100%', padding: '0.75rem 1rem', appearance: 'auto', background: 'rgba(0, 0, 0, 0.2)', boxSizing: 'border-box', fontSize: '1rem' }}
             value={limit}
             onChange={handleLimitChange}
             disabled={!isLoaded}
           >
-            <option value={5}>上位 5件</option>
-            <option value={10}>上位 10件</option>
-            <option value={25}>上位 25件</option>
-            <option value={50}>上位 50件</option>
+            <option value={5}>上位 5件まで表示</option>
+            <option value={10}>上位 10件まで表示</option>
+            <option value={25}>上位 25件まで表示</option>
+            <option value={50}>上位 50件まで表示</option>
             <option value="all">すべて探す</option>
           </select>
         </div>
