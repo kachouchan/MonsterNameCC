@@ -104,6 +104,8 @@ h1 {
   /* デフォルトは横並び */
   gap: 0.5rem;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .search-input,
@@ -308,6 +310,10 @@ h1 {
   }
 
   .app-container {
+    padding: 0.5rem;
+  }
+
+  .search-container {
     padding: 1rem;
   }
 
