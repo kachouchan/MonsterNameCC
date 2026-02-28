@@ -288,8 +288,12 @@ h1 {
 }
 
 /* Responsive */
-@media (max-width: 640px) {
-  #root {
+@media (max-width: 600px) {
+  body {
+    padding: 1rem;
+  }
+
+  .app-container {
     padding: 1rem;
   }
 
@@ -297,8 +301,20 @@ h1 {
     font-size: 2rem;
   }
 
+  .input-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .filter-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
   .search-input {
     font-size: 1.1rem;
     padding: 1rem;
+    width: 100% !important;
   }
 }
