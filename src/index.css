@@ -100,11 +100,16 @@ h1 {
 .input-wrapper {
   position: relative;
   display: flex;
+  flex-direction: row;
+  /* デフォルトは横並び */
+  gap: 0.5rem;
   align-items: center;
 }
 
-.search-input {
+.search-input,
+.search-select {
   width: 100%;
+  max-width: 100%;
   padding: 1.25rem 1.5rem;
   font-size: 1.25rem;
   background: rgba(0, 0, 0, 0.2);
@@ -114,9 +119,18 @@ h1 {
   outline: none;
   transition: all 0.2s ease;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
-.search-input:focus {
+.search-select {
+  appearance: auto;
+  cursor: pointer;
+  padding: 1rem 1.5rem;
+  /* セレクトボックス用に少し高さを調整 */
+}
+
+.search-input:focus,
+.search-select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--glow-color);
 }

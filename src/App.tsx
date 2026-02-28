@@ -147,7 +147,7 @@ export default function App() {
           ))}
         </div>
 
-        <div className="input-wrapper" style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div className="input-wrapper">
           <input
             id="search-input"
             type="text"
@@ -157,11 +157,9 @@ export default function App() {
             onChange={handleSearch}
             disabled={!isLoaded}
             autoComplete="off"
-            style={{ width: '100%', boxSizing: 'border-box' }}
           />
           <select
-            className="search-input"
-            style={{ width: '100%', padding: '0.75rem 1rem', appearance: 'auto', background: 'rgba(0, 0, 0, 0.2)', boxSizing: 'border-box', fontSize: '1rem' }}
+            className="search-select"
             value={limit}
             onChange={handleLimitChange}
             disabled={!isLoaded}
