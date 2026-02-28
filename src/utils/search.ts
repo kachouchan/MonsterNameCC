@@ -97,19 +97,21 @@ export class SearchEngine {
     /**
      * 最長一致原則（貪欲法）による部分文字列の再帰的分割
      * @param filterType 検索対象を絞り込む場合（'モンスター名' 等）に指定
+     * @param limit 取得件数の上限。'all'の場合は無制限とする。
      */
-    public searchLongestMatch(keyword: string, filterType?: string): MatchResult[] {
+    public searchLongestMatch(keyword: string, filterType?: string, limit: number | 'all' = 50): MatchResult[] {
         const results: MatchResult[] = [];
         let remaining = keyword;
 
         while (remaining.length > 0) {
-            let foundMatch = false;
-            const startLen = Math.min(remaining.length, this.maxItemLen > 0 ? this.maxItemLen : remaining.length);
+            let matchFound = false;
 
-            // 最長一致から順に試行
-            for (let len = startLen; len >= 1; len--) {
+            // 部分文字列の長さを最大（remaining全体）から1まで減らしていく
+            for (let len = remaining.length; len > 0; len--) {
                 const subStr = remaining.substring(0, len);
                 const normSubStr = this.normalize(subStr);
+
+                // 完全一致（部分一致）のリストを探す
                 const hits: SearchPart[] = [];
 
                 // 完全一致（部分一致）検索: インデックス内の正規化テキストが normSubStr を含むか
@@ -118,39 +120,33 @@ export class SearchEngine {
                     if (filterType && part.type !== filterType) continue;
 
                     if (part.normText.includes(normSubStr)) {
-                        // 重複排除（同じモンスター名の同じタイプは無視等簡易処理可）
+                        // 重複排除
                         if (!hits.some(h => h.monsterName === part.monsterName && h.text === part.text && h.type === part.type)) {
                             hits.push(part);
                         }
-                        if (hits.length >= 10) break; // 最大10件まで
+                        if (limit !== 'all' && hits.length >= limit) break; // 動的上限
                     }
                 }
 
+                // もし1件でも見つかれば、最長一致として採用
                 if (hits.length > 0) {
                     results.push({
                         part: subStr,
                         sources: hits
                     });
-                    remaining = remaining.substring(len);
-                    foundMatch = true;
-                    break;
+                    remaining = remaining.substring(len); // 残りの文字列を更新
+                    matchFound = true;
+                    break; // lenのループを抜けて、次のremainingへ
                 }
             }
 
-            // 該当なし（1文字も一致しない）
-            if (!foundMatch) {
-                // Fuse.jsを使ったあいまい検索でのフォールバックも検討可能だが
-                // 基本は1文字を「該当なし」として進む
-                const notFoundChar = remaining.substring(0, 1);
-
-                // オプション処理：あいまい検索で候補を探す（1文字の場合はノイズが多いので2文字以上推奨）
-                // 今回は単純化して該当なしとする
+            // どの長さでもマッチしなかった場合（文字が未知など）は1文字だけ進める
+            if (!matchFound) {
                 results.push({
-                    part: notFoundChar,
+                    part: remaining[0],
                     sources: [],
                     isNotFound: true
                 });
-
                 remaining = remaining.substring(1);
             }
         }
@@ -161,15 +157,16 @@ export class SearchEngine {
     /**
      * 単語単位であいまい検索を行う補助メソッド
      */
-    public searchFuzzy(query: string, filterType?: string): SearchPart[] {
+    public searchFuzzy(query: string, filterType?: string, limit: number | 'all' = 30): SearchPart[] {
         if (!this.fuse) return [];
         const normQuery = this.normalize(query);
-        let results = this.fuse.search(normQuery, { limit: (filterType ? 30 : 10) }); // フィルタ用に少し多めに取得
+        const searchLimit = limit === 'all' ? 100 : limit; // fuse検索のために最大件数を定義
+        let results = this.fuse.search(normQuery, { limit: (filterType ? searchLimit * 2 : searchLimit) });
 
         let items = results.map(r => r.item);
         if (filterType) {
             items = items.filter(item => item.type === filterType);
         }
-        return items.slice(0, 10);
+        return items.slice(0, searchLimit);
     }
 }

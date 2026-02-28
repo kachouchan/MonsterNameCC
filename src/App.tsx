@@ -4,9 +4,66 @@ import './index.css';
 
 type FilterType = '' | 'モンスター名' | 'スキル' | 'リーダースキル';
 
-function App() {
+// 一つの検索結果カードを表すコンポーネント
+const ResultCard = ({ result }: { result: MatchResult }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  // マッチしていない文字（該当なし）の場合は常に開く＆上位件数の制御が不要
+  const isNotFound = result.isNotFound;
+  const sources = result.sources || [];
+
+  // 上位3件とそれ以降
+  const previewCount = 3;
+  const hasMore = sources.length > previewCount;
+  const displayedSources = showAll ? sources : sources.slice(0, previewCount);
+
+  return (
+    <div className="result-card glass-panel" style={{ padding: isOpen ? '1.5rem' : '1rem 1.5rem' }}>
+      <div className="result-header" onClick={() => setIsOpen(!isOpen)}>
+        <span className="target-char">{result.part} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>({sources.length}件)</span></span>
+        <span className={`expand-icon ${isOpen ? 'open' : ''}`}>▼</span>
+      </div>
+
+      {isOpen && (
+        <div className="parts-list" style={{ marginTop: '1rem' }}>
+          {!isNotFound ? (
+            <>
+              {displayedSources.map((source, sIdx) => (
+                <div key={sIdx} className="part-item">
+                  <span className="part-name">{source.monsterName}</span>
+                  <span className="part-type">{source.type}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginLeft: 'auto' }}>
+                    「{source.text}」より
+                  </span>
+                </div>
+              ))}
+
+              {!showAll && hasMore && (
+                <button
+                  className="show-more-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAll(true);
+                  }}
+                >
+                  残り {sources.length - previewCount} 件をすべて表示する
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="not-found">該当する文字を含むパーツが見つかりません</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function App() {
   const [query, setQuery] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('');
+  const [limit, setLimit] = useState<number | 'all'>(25); // デフォルト25件
   const [results, setResults] = useState<MatchResult[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [fuzzyResults, setFuzzyResults] = useState<SearchPart[]>([]);
@@ -23,9 +80,9 @@ function App() {
     loadData();
   }, []);
 
-  const executeSearch = (searchQuery: string, type: FilterType) => {
+  const executeSearch = (searchQuery: string, type: FilterType, currentLimit: number | 'all') => {
     if (searchQuery.length > 0 && isLoaded) {
-      const parts = engineRef.current.searchLongestMatch(searchQuery, type || undefined);
+      const parts = engineRef.current.searchLongestMatch(searchQuery, type || undefined, currentLimit);
       setResults(parts);
       setShowFuzzy(false);
     } else {
@@ -36,19 +93,25 @@ function App() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
-    executeSearch(value, filterType);
+    executeSearch(value, filterType, limit);
+  };
+
+  const handleLimitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+    setLimit(val);
+    executeSearch(query, filterType, val);
   };
 
   const executeFuzzySearch = () => {
     if (!query) return;
-    const fResults = engineRef.current.searchFuzzy(query, filterType || undefined);
+    const fResults = engineRef.current.searchFuzzy(query, filterType || undefined, limit);
     setFuzzyResults(fResults);
     setShowFuzzy(true);
   };
 
   const handleFilterChange = (type: FilterType) => {
     setFilterType(type);
-    executeSearch(query, type);
+    executeSearch(query, type, limit);
   };
 
   return (
@@ -84,7 +147,7 @@ function App() {
           ))}
         </div>
 
-        <div className="input-wrapper" style={{ marginTop: '1rem' }}>
+        <div className="input-wrapper" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
           <input
             id="search-input"
             type="text"
@@ -94,7 +157,21 @@ function App() {
             onChange={handleSearch}
             disabled={!isLoaded}
             autoComplete="off"
+            style={{ flex: 1 }}
           />
+          <select
+            className="search-input"
+            style={{ width: 'auto', padding: '0.5rem 1rem', appearance: 'auto', background: 'rgba(0, 0, 0, 0.2)' }}
+            value={limit}
+            onChange={handleLimitChange}
+            disabled={!isLoaded}
+          >
+            <option value={5}>上位 5件</option>
+            <option value={10}>上位 10件</option>
+            <option value={25}>上位 25件</option>
+            <option value={50}>上位 50件</option>
+            <option value="all">すべて探す</option>
+          </select>
         </div>
         {query.length > 0 && (
           <button
@@ -118,26 +195,7 @@ function App() {
         <section className="results-container">
           {results.length > 0 ? (
             results.map((result, idx) => (
-              <div key={idx} className="result-card glass-panel">
-                <div className="result-header">
-                  <span className="target-char">{result.part}</span>
-                </div>
-                <div className="parts-list">
-                  {!result.isNotFound ? (
-                    result.sources.map((source, sIdx) => (
-                      <div key={sIdx} className="part-item">
-                        <span className="part-name">{source.monsterName}</span>
-                        <span className="part-type">{source.type}</span>
-                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginLeft: 'auto' }}>
-                          「{source.text}」より
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="not-found">該当する文字を含むパーツが見つかりません</div>
-                  )}
-                </div>
-              </div>
+              <ResultCard key={idx} result={result} />
             ))
           ) : (
             <div className="empty-state">
@@ -172,5 +230,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
